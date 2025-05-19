@@ -215,29 +215,30 @@ module Liquid
       render_to_output_buffer(context, +'')
     end
 
-    def render_to_output_buffer(context, output)
-      freeze unless frozen?
+      def render_to_output_buffer(context, output)
+        freeze unless frozen?
 
-      context.resource_limits.increment_render_score(@nodelist.length)
+        resource_limits = context.resource_limits
+        resource_limits.increment_render_score(@nodelist.length)
 
-      idx = 0
-      while (node = @nodelist[idx])
-        if node.instance_of?(String)
-          output << node
-        else
-          render_node(context, output, node)
-          # If we get an Interrupt that means the block must stop processing. An
-          # Interrupt is any command that stops block execution such as {% break %}
-          # or {% continue %}. These tags may also occur through Block or Include tags.
-          break if context.interrupt? # might have happened in a for-block
+        idx = 0
+        while (node = @nodelist[idx])
+          if node.instance_of?(String)
+            output << node
+          else
+            render_node(context, output, node)
+            # If we get an Interrupt that means the block must stop processing. An
+            # Interrupt is any command that stops block execution such as {% break %}
+            # or {% continue %}. These tags may also occur through Block or Include tags.
+            break if context.interrupt? # might have happened in a for-block
+          end
+          idx += 1
+
+          resource_limits.increment_write_score(output)
         end
-        idx += 1
 
-        context.resource_limits.increment_write_score(output)
+        output
       end
-
-      output
-    end
 
     private
 

@@ -2,6 +2,9 @@
 
 module Liquid
   module Utils
+    DECIMAL_REGEX = /\A-?\d+\.\d+\z/
+    UNIX_TIMESTAMP_REGEX = /\A\d+\z/
+
     def self.slice_collection(collection, from, to)
       if (from != 0 || !to.nil?) && collection.respond_to?(:load_slice)
         collection.load_slice(from, to)
@@ -52,7 +55,7 @@ module Liquid
       when Numeric
         obj
       when String
-        /\A-?\d+\.\d+\z/.match?(obj.strip) ? BigDecimal(obj) : obj.to_i
+        DECIMAL_REGEX.match?(obj.strip) ? BigDecimal(obj) : obj.to_i
       else
         if obj.respond_to?(:to_number)
           obj.to_number
@@ -73,7 +76,7 @@ module Liquid
       case obj
       when 'now', 'today'
         Time.now
-      when /\A\d+\z/, Integer
+      when UNIX_TIMESTAMP_REGEX, Integer
         Time.at(obj.to_i)
       when String
         Time.parse(obj)
@@ -92,6 +95,8 @@ module Liquid
 
     def self.to_s(obj, seen = {})
       case obj
+      when BigDecimal
+        obj.to_s("F")
       when Hash
         # If the custom hash implementation overrides `#to_s`, use their
         # custom implementation. Otherwise we use Liquid's default

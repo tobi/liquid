@@ -1,6 +1,17 @@
 # Liquid Change Log
 
-## 5.8.1 (unreleased)
+## 5.11.0
+* Revert the Inline Snippets tag (#2001), treat its inclusion in the latest Liquid release as a bug, and allow for feedback on RFC#1916 to better support Liquid developers [Guilherme Carreiro]
+* Rename the `:rigid` error mode to `:strict2` and display a warning when users attempt to use the `:rigid` mode [Guilherme Carreiro]
+
+## 5.10.0
+* Introduce support for Inline Snippets [Julia Boutin]
+
+## 5.9.0
+* Introduce `:rigid` error mode for stricter, safer parsing of all tags [CP Clermont, Guilherme Carreiro]
+
+## 5.8.7
+* Expose body content in the `Doc` tag [James Meng]
 
 ## 5.8.1
 

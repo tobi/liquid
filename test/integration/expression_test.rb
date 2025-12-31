@@ -26,8 +26,12 @@ class ExpressionTest < Minitest::Test
   def test_float
     assert_template_result("-17.42", "{{ -17.42 }}")
     assert_template_result("2.5", "{{ 2.5 }}")
-    assert_expression_result(0.0, "0.....5")
-    assert_expression_result(0.0, "-0..1")
+
+    with_error_modes(:lax) do
+      assert_expression_result(0.0, "0.....5")
+      assert_expression_result(0.0, "-0..1")
+    end
+
     assert_expression_result(1.5, "1.5")
 
     # this is a unfortunate quirky behavior of Liquid
@@ -61,6 +65,7 @@ class ExpressionTest < Minitest::Test
     assert_template_result(
       "",
       "{{ - 'theme.css' - }}",
+      error_mode: :lax,
     )
   end
 
@@ -145,6 +150,35 @@ class ExpressionTest < Minitest::Test
     parse_context = Liquid::ParseContext.new(expression_cache: false)
     Liquid::Template.parse(template, parse_context).render
     assert(parse_context.instance_variable_get(:@expression_cache).nil?)
+  end
+
+  def test_safe_parse_with_variable_lookup
+    parse_context = Liquid::ParseContext.new
+    parser = parse_context.new_parser('product.title')
+    result = Liquid::Expression.safe_parse(parser)
+
+    assert_instance_of(Liquid::VariableLookup, result)
+    assert_equal('product', result.name)
+    assert_equal(['title'], result.lookups)
+  end
+
+  def test_safe_parse_with_number
+    parse_context = Liquid::ParseContext.new
+    parser = parse_context.new_parser('42')
+    result = Liquid::Expression.safe_parse(parser)
+
+    assert_equal(42, result)
+  end
+
+  def test_safe_parse_raises_syntax_error_for_invalid_expression
+    parse_context = Liquid::ParseContext.new
+    parser = parse_context.new_parser('')
+
+    error = assert_raises(Liquid::SyntaxError) do
+      Liquid::Expression.safe_parse(parser)
+    end
+
+    assert_match(/is not a valid expression/, error.message)
   end
 
   private

@@ -105,7 +105,33 @@ class RenderTagTest < Minitest::Test
     assert_syntax_error("{% assign name = 'snippet' %}{% render name %}")
   end
 
-  def test_include_tag_caches_second_read_of_same_partial
+  def test_strict2_parsing_errors
+    with_error_modes(:lax, :strict) do
+      assert_template_result(
+        'hello value1 value2',
+        '{% render "snippet" !!! arg1: "value1" ~~~ arg2: "value2" %}',
+        partials: { 'snippet' => 'hello {{ arg1 }} {{ arg2 }}' },
+      )
+    end
+
+    with_error_modes(:strict2) do
+      assert_syntax_error(
+        '{% render "snippet" !!! arg1: "value1" ~~~ arg2: "value2" %}',
+      )
+      assert_syntax_error(
+        '{% render "snippet" | filter %}',
+      )
+    end
+  end
+
+  def test_optional_commas
+    partials = { 'snippet' => 'hello {{ arg1 }} {{ arg2 }}' }
+    assert_template_result('hello value1 value2', '{% render "snippet", arg1: "value1", arg2: "value2" %}', partials: partials)
+    assert_template_result('hello value1 value2', '{% render "snippet"  arg1: "value1", arg2: "value2" %}', partials: partials)
+    assert_template_result('hello value1 value2', '{% render "snippet"  arg1: "value1"  arg2: "value2" %}', partials: partials)
+  end
+
+  def test_render_tag_caches_second_read_of_same_partial
     file_system = StubFileSystem.new('snippet' => 'echo')
     assert_equal(
       'echoecho',
@@ -287,5 +313,31 @@ class RenderTagTest < Minitest::Test
       template_factory: StubTemplateFactory.new,
       render_errors: true,
     )
+  end
+
+  def test_render_with_invalid_expression
+    template = '{% render "snippet" with foo=>bar %}'
+
+    with_error_modes(:lax, :strict) do
+      refute_nil(Template.parse(template))
+    end
+
+    with_error_modes(:strict2) do
+      error = assert_raises(Liquid::SyntaxError) { Template.parse(template) }
+      assert_match(/Unexpected character =/, error.message)
+    end
+  end
+
+  def test_render_attribute_with_invalid_expression
+    template = '{% render "snippet", key: foo=>bar %}'
+
+    with_error_modes(:lax, :strict) do
+      refute_nil(Template.parse(template))
+    end
+
+    with_error_modes(:strict2) do
+      error = assert_raises(Liquid::SyntaxError) { Template.parse(template) }
+      assert_match(/Unexpected character =/, error.message)
+    end
   end
 end

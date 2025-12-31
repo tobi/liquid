@@ -34,7 +34,7 @@ module Minitest
 
     def assert_template_result(
       expected, template, assigns = {},
-      message: nil, partials: nil, error_mode: nil, render_errors: false,
+      message: nil, partials: nil, error_mode: Liquid::Environment.default.error_mode, render_errors: false,
       template_factory: nil
     )
       file_system = StubFileSystem.new(partials || {})
@@ -82,10 +82,12 @@ module Minitest
       Environment.dangerously_override(environment, &blk)
     end
 
-    def with_error_mode(mode)
+    def with_error_modes(*modes)
       old_mode = Liquid::Environment.default.error_mode
-      Liquid::Environment.default.error_mode = mode
-      yield
+      modes.each do |mode|
+        Liquid::Environment.default.error_mode = mode
+        yield
+      end
     ensure
       Liquid::Environment.default.error_mode = old_mode
     end
@@ -195,6 +197,26 @@ class ErrorDrop < Liquid::Drop
   def exception
     raise Exception, 'exception'
   end
+end
+
+class CustomToLiquidDrop < Liquid::Drop
+  def initialize(value)
+    @value = value
+    super()
+  end
+
+  def to_liquid
+    @value
+  end
+end
+
+class HashWithCustomToS < Hash
+  def to_s
+    "kewl"
+  end
+end
+
+class HashWithoutCustomToS < Hash
 end
 
 class StubFileSystem

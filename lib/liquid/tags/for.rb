@@ -20,8 +20,8 @@ module Liquid
   # @liquid_syntax_keyword variable The current item in the array.
   # @liquid_syntax_keyword array The array to iterate over.
   # @liquid_syntax_keyword expression The expression to render for each iteration.
-  # @liquid_optional_param limit [number] The number of iterations to perform.
-  # @liquid_optional_param offset [number] The 1-based index to start iterating at.
+  # @liquid_optional_param limit: [number] The number of iterations to perform.
+  # @liquid_optional_param offset: [number] The 1-based index to start iterating at.
   # @liquid_optional_param range [untyped] A custom numeric range to iterate over.
   # @liquid_optional_param reversed [untyped] Iterate in reverse order.
   class For < Block
@@ -93,7 +93,7 @@ module Liquid
       raise SyntaxError, options[:locale].t("errors.syntax.for_invalid_in") unless p.id?('in')
 
       collection_name  = p.expression
-      @collection_name = parse_expression(collection_name)
+      @collection_name = parse_expression(collection_name, safe: true)
 
       @name     = "#{@variable_name}-#{collection_name}"
       @reversed = p.id?('reversed')
@@ -104,12 +104,16 @@ module Liquid
           raise SyntaxError, options[:locale].t("errors.syntax.for_invalid_attribute")
         end
         p.consume(:colon)
-        set_attribute(attribute, p.expression)
+        set_attribute(attribute, p.expression, safe: true)
       end
       p.consume(:end_of_string)
     end
 
     private
+
+    def strict2_parse(markup)
+      strict_parse(markup)
+    end
 
     def collection_segment(context)
       offsets = context.registers[:for] ||= {}
@@ -174,16 +178,16 @@ module Liquid
       output
     end
 
-    def set_attribute(key, expr)
+    def set_attribute(key, expr, safe: false)
       case key
       when 'offset'
         @from = if expr == 'continue'
           :continue
         else
-          parse_expression(expr)
+          parse_expression(expr, safe: safe)
         end
       when 'limit'
-        @limit = parse_expression(expr)
+        @limit = parse_expression(expr, safe: safe)
       end
     end
 
